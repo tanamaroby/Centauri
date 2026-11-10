@@ -1,5 +1,7 @@
 # ✦ Centauri
 
+**Live:** https://centauri-tanamarobys-projects.vercel.app
+
 A personal ticket wallet and trip planner, built as an iPhone-first PWA.
 
 Drop in a boarding pass PDF, a ferry ticket screenshot, or scan a QR code. Centauri reads it on your phone and files it as a clean wallet card with a scannable barcode. Group tickets into trips and see everything on a day-by-day timeline. It syncs to your own Postgres database and works offline at the gate.
