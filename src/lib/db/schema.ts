@@ -1,0 +1,48 @@
+import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+
+export const trips = pgTable("trips", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  notes: text("notes"),
+  color: text("color"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tickets = pgTable(
+  "tickets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull().default("other"),
+    title: text("title").notNull(),
+    carrier: text("carrier"),
+    reference: text("reference"),
+    bookingRef: text("booking_ref"),
+    passengerName: text("passenger_name"),
+    origin: text("origin"),
+    originName: text("origin_name"),
+    destination: text("destination"),
+    destinationName: text("destination_name"),
+    departureAt: text("departure_at"),
+    arrivalAt: text("arrival_at"),
+    seat: text("seat"),
+    gate: text("gate"),
+    terminal: text("terminal"),
+    cabinClass: text("cabin_class"),
+    boardingGroup: text("boarding_group"),
+    deck: text("deck"),
+    notes: text("notes"),
+    barcodeData: text("barcode_data"),
+    barcodeFormat: text("barcode_format"),
+    fileUrl: text("file_url"),
+    fileName: text("file_name"),
+    fileType: text("file_type"),
+    tripId: uuid("trip_id").references(() => trips.id, { onDelete: "set null" }),
+    color: text("color"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("tickets_departure_idx").on(t.departureAt), index("tickets_trip_idx").on(t.tripId)],
+);
