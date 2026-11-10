@@ -11,6 +11,7 @@ Drop in a boarding pass PDF, a ferry ticket screenshot, or scan a QR code. Centa
   - IATA boarding pass barcodes (PDF417 / Aztec / QR) are decoded into airline, flight, route, seat, PNR, passenger and date
   - PDF text extraction (pdf.js) and image OCR (tesseract.js) with heuristics for dates, times, booking refs, ports, seats, gates
   - Live camera scanning of QR / PDF417 / Aztec / Data Matrix / Code 128
+  - Optional **AI reading** through the Neon AI Gateway: when a ticket has text, an LLM fills in the fields that heuristics miss (barcode data still wins)
   - Everything lands in an editable form before saving
 - **Trips and timeline**: group tickets into trips, view a day-by-day itinerary.
 - **Sync**: Neon Postgres (via Drizzle) for data, Vercel Blob for original files (private store).
@@ -24,7 +25,7 @@ Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS v4 · shadcn/ui
 ## Deploy to Vercel
 
 1. Import this repo in Vercel (framework: Next.js, no build settings needed).
-2. **Storage → Create → Neon (Postgres)** and connect it to the project. This sets `DATABASE_URL`. Tables are created automatically on first request.
+2. **Database**: either add Neon from **Storage** in Vercel (sets `DATABASE_URL`), or use the linked Neon project (`neon.ts`): run `neon deploy`, then copy `DATABASE_URL` from `.env.local` into Vercel. Tables are created automatically on first request.
 3. **Storage → Create → Blob**, choose **Private** access, and connect it. This sets `BLOB_READ_WRITE_TOKEN`.
 4. **Settings → Environment Variables**, add:
 
@@ -33,6 +34,11 @@ Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS v4 · shadcn/ui
    | `APP_PASSWORD` | the password you'll use to unlock the app |
    | `AUTH_SECRET` | a random string, 32+ characters (`openssl rand -base64 48`) |
    | `BLOB_ACCESS` | optional, `private` (default) or `public` to match your Blob store |
+   | `NEON_AI_GATEWAY_BASE_URL` | optional, from `.env.local` after `neon deploy`; enables AI ticket reading |
+   | `NEON_AI_GATEWAY_TOKEN` | optional, from `.env.local` after `neon deploy` |
+   | `AI_MODEL` | optional model id, default `claude-haiku-4-5` |
+
+   AI reading needs AI Gateway credits on your Neon account (Billing page). Without them, or without these variables, the app silently falls back to on-device parsing.
 
 5. Redeploy. Open the site in Safari on your iPhone, sign in, then **Share → Add to Home Screen**.
 
@@ -46,7 +52,7 @@ cp .env.example .env.local   # set APP_PASSWORD and AUTH_SECRET
 npm run dev
 ```
 
-Without `DATABASE_URL`, an embedded Postgres (PGlite) is used in `./.pglite`, so it works with zero setup. File uploads need `BLOB_READ_WRITE_TOKEN` (tickets still save without the original file).
+`neon deploy` writes `DATABASE_URL` and the AI Gateway variables into `.env.local`. Without `DATABASE_URL`, an embedded Postgres (PGlite) is used in `./.pglite`, so it works with zero setup. File uploads need `BLOB_READ_WRITE_TOKEN` (tickets still save without the original file).
 
 Scripts: `npm run typecheck`, `npm run lint`, `npm run icons` (regenerate icons from `public/icons/icon.svg`), `npm run db:push` / `db:studio` (drizzle-kit).
 
