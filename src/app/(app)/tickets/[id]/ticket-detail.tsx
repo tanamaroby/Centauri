@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, ExternalLink, Map, Pencil, Sun, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, Map, Pencil, Sun, Trash2 } from "lucide-react";
 import { fileHref, useDeleteTicket, useSaveTicket, useTicket, useTrips } from "@/lib/client-api";
 import { duration, fmtDay, fmtTime, gradientFor, relative, TYPE_LABEL } from "@/lib/format";
 import { Barcode } from "@/components/barcode";
+import { FileViewer } from "@/components/file-viewer";
 import { Endpoint } from "@/components/ticket-card";
 import { TypeIcon } from "@/components/ticket-icon";
 import { TicketForm } from "@/components/ticket-form";
@@ -26,6 +27,7 @@ export function TicketDetail() {
   const del = useDeleteTicket();
   const [editing, setEditing] = useState(false);
   const [bright, setBright] = useState(false);
+  const [viewing, setViewing] = useState(false);
 
   if (isPending && !ticket) {
     return (
@@ -157,13 +159,13 @@ export function TicketDetail() {
           </Link>
         )}
         {ticket.fileUrl && (
-          <a href={fileHref(ticket.fileUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-2xl border bg-card p-4">
-            <ExternalLink className="size-5 text-primary" />
+          <button onClick={() => setViewing(true)} className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left">
+            <FileText className="size-5 text-primary" />
             <div className="min-w-0 flex-1">
               <div className="text-xs text-muted-foreground">Original file</div>
               <div className="truncate font-medium">{ticket.fileName ?? "Open file"}</div>
             </div>
-          </a>
+          </button>
         )}
         {ticket.notes && (
           <div className="rounded-2xl border bg-card p-4">
@@ -186,6 +188,10 @@ export function TicketDetail() {
             <div className="mt-4 text-xs text-black/50">Turn your screen brightness up · tap to close</div>
           </div>
         </button>
+      )}
+
+      {viewing && ticket.fileUrl && (
+        <FileViewer src={fileHref(ticket.fileUrl)} name={ticket.fileName ?? "Ticket"} type={ticket.fileType} onClose={() => setViewing(false)} />
       )}
 
       <Drawer open={editing} onOpenChange={setEditing} repositionInputs={false}>
