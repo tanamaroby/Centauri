@@ -82,12 +82,27 @@
     @apply border-border outline-ring/50;
   }
   html {
+    background-color: var(--background);
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground antialiased;
     overscroll-behavior-y: none;
+  }
+  /* iOS Safari gives date/time inputs an intrinsic min width and native styling, which makes
+     them overflow their grid cell. Reset so they size like normal text inputs. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    display: block;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 1.5em;
   }
   /* iOS zooms into inputs below 16px */
   input, select, textarea {

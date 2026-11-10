@@ -29,8 +29,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#14122b" },
-    { media: "(prefers-color-scheme: light)", color: "#f7f7fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0b1c" },
+    { media: "(prefers-color-scheme: light)", color: "#f9fafd" },
   ],
 };
 
@@ -38,6 +38,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
+        {/* Solid status-bar backdrop. With a translucent status bar, iOS (notably iOS 26 standalone PWAs)
+            otherwise blurs/fades whatever scrolls under the notch / Dynamic Island. */}
+        <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[env(safe-area-inset-top)] bg-background" />
         <Providers>{children}</Providers>
       </body>
     </html>

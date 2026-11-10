@@ -33,7 +33,7 @@ export function TripForm({ initial, onSubmit, submitLabel = "Save trip" }: { ini
         <Label>Name</Label>
         <Input required placeholder="Japan in autumn" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
         <div className="space-y-1.5">
           <Label>Start</Label>
           <Input type="date" value={v.startDate ?? ""} onChange={(e) => setV({ ...v, startDate: e.target.value || null })} />

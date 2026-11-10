@@ -188,9 +188,9 @@ function DateTimeField({ label, value, onChange }: { label: string; value?: stri
   const emit = (d: string, t: string) => onChange(d ? (t ? `${d}T${t}` : d) : null);
   return (
     <Field label={label}>
-      <div className="grid grid-cols-[1fr_8rem] gap-2">
-        <Input type="date" value={date} onChange={(e) => emit(e.target.value, time)} />
-        <Input type="time" value={time} disabled={!date} onChange={(e) => emit(date, e.target.value)} />
+      <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2">
+        <Input type="date" className="min-w-0" value={date} onChange={(e) => emit(e.target.value, time)} />
+        <Input type="time" className="min-w-0" placeholder="Time" value={time} disabled={!date} onChange={(e) => emit(date, e.target.value)} />
       </div>
     </Field>
   );

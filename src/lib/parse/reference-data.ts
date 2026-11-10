@@ -10,6 +10,7 @@ export const AIRLINES: Record<string, string> = {
   OZ: "Asiana", PR: "Philippine Airlines", QF: "Qantas", QR: "Qatar Airways", QZ: "Indonesia AirAsia",
   SQ: "Singapore Airlines", TG: "Thai Airways", TK: "Turkish Airlines", TR: "Scoot", U2: "easyJet",
   UA: "United", VA: "Virgin Australia", VJ: "VietJet", VN: "Vietnam Airlines", VS: "Virgin Atlantic",
+  QG: "Citilink", IN: "Nam Air", IW: "Wings Air", "8B": "TransNusa", SJ: "Sriwijaya Air", IP: "Pelita Air",
   "3K": "Jetstar Asia", "5J": "Cebu Pacific", "6E": "IndiGo", WN: "Southwest", B6: "JetBlue", AS: "Alaska Airlines",
 };
 
