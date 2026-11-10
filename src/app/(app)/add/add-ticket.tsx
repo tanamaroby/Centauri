@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { uploadTicketFile, useSaveTicket } from "@/lib/client-api";
 import { fieldsFrom, type DecodedBarcode } from "@/lib/parse/extract";
-import { bcbpToTicket } from "@/lib/parse/bcbp";
 
 type Step =
   | { kind: "choose" }
@@ -31,13 +30,6 @@ export function AddTicket() {
     try {
       const { extractFromFile } = await import("@/lib/parse/extract");
       const result = await extractFromFile(file, { onStatus: (status) => setStep({ kind: "working", status }) });
-      let aiNote: string | null = null;
-      if (result.text.trim()) {
-        setStep({ kind: "working", status: "Reading with AI…" });
-        const ai = await aiRead(result.text, result.barcodes[0]?.data);
-        if (ai.fields) result.fields = mergeAi(result.fields, ai.fields, result.barcodes[0]?.data);
-        else if (ai.error) aiNote = ai.error;
-      }
       const found = [
         result.barcodes.length ? `${result.barcodes[0].format.toUpperCase()} code` : null,
         result.fields.departureAt ? "date" : null,
@@ -48,9 +40,7 @@ export function AddTicket() {
         draft: result.fields,
         file,
         preview: result.preview,
-        summary:
-          (found.length ? `Found ${found.join(", ")}. Check the details below.` : "Couldn't read much from this file. Fill in the details below.") +
-          (aiNote ? ` (${aiNote})` : ""),
+        summary: found.length ? `Found ${found.join(", ")}. Check the details below.` : "Couldn't read much from this file. Fill in the details below.",
       });
     } catch (e) {
       console.error(e);
@@ -149,31 +139,6 @@ export function AddTicket() {
       </div>
     </>
   );
-}
-
-/** Ask the server to read the ticket text with an LLM (Neon AI Gateway). Never throws. */
-async function aiRead(text: string, barcode?: string): Promise<{ fields?: TicketDraft; error?: string }> {
-  try {
-    const res = await fetch("/api/ai/parse", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: text.slice(0, 30_000), barcode, today: new Date().toISOString().slice(0, 10) }),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok) return { fields: body.fields };
-    // 501 = AI not configured: stay quiet and use on-device parsing only.
-    return res.status === 501 ? {} : { error: body.error ?? "AI reading unavailable" };
-  } catch {
-    return {};
-  }
-}
-
-/** AI beats text heuristics; boarding-pass barcode data beats both. */
-function mergeAi(local: TicketDraft, ai: TicketDraft, barcode?: string): TicketDraft {
-  const fromBarcode = barcode ? (bcbpToTicket(barcode) ?? {}) : {};
-  const merged: TicketDraft = { ...local, ...ai, ...fromBarcode };
-  if (fromBarcode.departureAt && ai.departureAt?.startsWith(fromBarcode.departureAt)) merged.departureAt = ai.departureAt;
-  return merged;
 }
 
 function Option({ icon: Icon, title, description, onClick }: { icon: typeof Camera; title: string; description: string; onClick: () => void }) {
