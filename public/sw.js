@@ -1,5 +1,5 @@
 /* Centauri service worker: offline app shell + ticket file cache. */
-const VERSION = "centauri-v1";
+const VERSION = "centauri-v2";
 const SHELL = `${VERSION}-shell`;
 const FILES = `${VERSION}-files`;
 const PRECACHE = ["/", "/timeline", "/trips", "/add", "/offline.html", "/icons/icon-192.png"];

@@ -20,7 +20,7 @@ export function Timeline({ tickets }: { tickets: Ticket[] }) {
     <ol className="space-y-6">
       {[...groups.entries()].map(([day, items]) => (
         <li key={day}>
-          <div className={cn("sticky top-[env(safe-area-inset-top)] z-10 -mx-5 mb-2 bg-background px-5 py-2", day < today && "opacity-60")}>
+          <div className={cn("sticky top-[calc(env(safe-area-inset-top)+var(--top-edge))] z-10 -mx-5 mb-2 bg-background px-5 py-2", day < today && "opacity-60")}>
             <h3 className="text-sm font-semibold">{day === "undated" ? "No date" : fmtDay(day, "long")}</h3>
           </div>
           <ol className="relative ml-3 space-y-3 border-l border-border pl-6">

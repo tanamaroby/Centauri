@@ -36,6 +36,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
+        {/* Opaque, full-width, fixed bar at the very top edge. On iOS 26+ WebKit only suppresses the
+            home-screen "scroll pocket" blur when it hit-tests a solid positioned element there
+            (and only with the "default" status-bar style). Pages are padded below it (pt-safe). It must stay hit-testable, so no pointer-events-none. */}
+        <div aria-hidden className="top-edge-bar fixed inset-x-0 top-0 z-40 bg-background" />
         <Providers>{children}</Providers>
       </body>
     </html>
