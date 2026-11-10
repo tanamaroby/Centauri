@@ -64,6 +64,9 @@ async function ensureSchema(db: Db) {
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
   )`);
+  // Added after launch; ADD COLUMN IF NOT EXISTS keeps existing databases in step.
+  await db.execute(sql`ALTER TABLE tickets ADD COLUMN IF NOT EXISTS checked_in boolean NOT NULL DEFAULT false`);
+  await db.execute(sql`ALTER TABLE tickets ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS tickets_departure_idx ON tickets (departure_at)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS tickets_trip_idx ON tickets (trip_id)`);
 }

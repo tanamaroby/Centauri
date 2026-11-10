@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index, boolean, jsonb } from "drizzle-orm/pg-core";
+import type { Attachment } from "@/lib/types";
 
 export const trips = pgTable("trips", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -41,6 +42,8 @@ export const tickets = pgTable(
     fileType: text("file_type"),
     tripId: uuid("trip_id").references(() => trips.id, { onDelete: "set null" }),
     color: text("color"),
+    checkedIn: boolean("checked_in").notNull().default(false),
+    attachments: jsonb("attachments").$type<Attachment[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

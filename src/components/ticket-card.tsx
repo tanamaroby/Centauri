@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, QrCode } from "lucide-react";
+import { ArrowRight, Clock, QrCode } from "lucide-react";
+import { needsCheckIn } from "@/lib/tickets";
 import type { Ticket } from "@/lib/types";
 import { duration, fmtDay, fmtTime, gradientFor, relative, TYPE_LABEL } from "@/lib/format";
 import { TypeIcon } from "@/components/ticket-icon";
@@ -72,7 +73,13 @@ export function TicketCard({ ticket, stacked = false, className }: { ticket: Tic
             {ticket.deck && <Field label="Deck" value={ticket.deck} />}
             {ticket.bookingRef && <Field label="Booking" value={ticket.bookingRef} />}
           </div>
-          {ticket.barcodeData && <QrCode className="size-5 text-white/80" />}
+          {needsCheckIn(ticket) ? (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">
+              <Clock className="size-3" /> Check-in pending
+            </span>
+          ) : (
+            ticket.barcodeData && <QrCode className="size-5 text-white/80" />
+          )}
         </div>
       </div>
     </Link>

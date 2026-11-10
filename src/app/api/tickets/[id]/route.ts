@@ -46,7 +46,8 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     const db = await database();
     const { id } = await params;
     const [row] = await db.delete(tickets).where(eq(tickets.id, id)).returning();
-    if (row?.fileUrl) await del(row.fileUrl).catch(() => {});
+    const urls = new Set([row?.fileUrl, ...(row?.attachments ?? []).map((a) => a.url)].filter(Boolean) as string[]);
+    if (urls.size) await del([...urls]).catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e) {
     return jsonError(e);

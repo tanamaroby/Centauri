@@ -6,6 +6,16 @@ export type TicketType = (typeof TICKET_TYPES)[number];
 export const BARCODE_FORMATS = ["qrcode", "pdf417", "azteccode", "datamatrix", "code128", "ean13"] as const;
 export type BarcodeFormat = (typeof BARCODE_FORMATS)[number];
 
+export const ATTACHMENT_KINDS = ["booking", "boarding", "other"] as const;
+export type AttachmentKind = (typeof ATTACHMENT_KINDS)[number];
+export const attachmentSchema = z.object({
+  url: z.string().url().max(1000),
+  name: z.string().max(300),
+  type: z.string().max(200).nullish().transform((v) => v ?? null),
+  kind: z.enum(ATTACHMENT_KINDS).default("other"),
+});
+export type Attachment = z.output<typeof attachmentSchema>;
+
 const opt = z.string().trim().max(500).nullish().transform((v) => (v ? v : null));
 /** Local wall-clock datetime, "YYYY-MM-DDTHH:mm". Tickets show local times, so no timezone is stored. */
 const localDateTime = z
@@ -41,6 +51,9 @@ export const ticketInputSchema = z.object({
   fileType: opt,
   tripId: z.string().uuid().nullish().transform((v) => v ?? null),
   color: opt,
+  /** For flights: false until a boarding pass is attached (booking confirmation only). */
+  checkedIn: z.boolean().default(false),
+  attachments: z.array(attachmentSchema).max(20).default([]),
 });
 export type TicketInput = z.input<typeof ticketInputSchema>;
 export type TicketValues = z.output<typeof ticketInputSchema>;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Ticket, TicketInput, Trip, TripInput } from "@/lib/types";
+import type { Attachment, Ticket, TicketInput, Trip, TripInput } from "@/lib/types";
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -103,6 +103,11 @@ export async function uploadTicketFile(file: File) {
     contentType: file.type || undefined,
   });
   return { fileUrl: blob.url, fileName: file.name, fileType: file.type || null };
+}
+
+export async function uploadAttachment(file: File, kind: Attachment["kind"]): Promise<Attachment> {
+  const { fileUrl, fileName, fileType } = await uploadTicketFile(file);
+  return { url: fileUrl, name: fileName, type: fileType, kind };
 }
 
 export const fileHref = (fileUrl: string) => `/api/files?url=${encodeURIComponent(fileUrl)}`;

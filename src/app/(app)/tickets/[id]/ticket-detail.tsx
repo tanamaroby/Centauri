@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, FileText, Map, Pencil, Sun, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, FileText, Map, Pencil, Plus, Sun, Trash2 } from "lucide-react";
 import { fileHref, useDeleteTicket, useSaveTicket, useTicket, useTrips } from "@/lib/client-api";
 import { duration, fmtDay, fmtTime, gradientFor, relative, TYPE_LABEL } from "@/lib/format";
 import { Barcode } from "@/components/barcode";
@@ -16,6 +16,9 @@ import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { AddBoardingPass } from "@/components/add-boarding-pass";
+import { KIND_LABEL, needsCheckIn, ticketFiles } from "@/lib/tickets";
+import type { Attachment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function TicketDetail() {
@@ -27,7 +30,8 @@ export function TicketDetail() {
   const del = useDeleteTicket();
   const [editing, setEditing] = useState(false);
   const [bright, setBright] = useState(false);
-  const [viewing, setViewing] = useState(false);
+  const [viewing, setViewing] = useState<Attachment | null>(null);
+  const [addingPass, setAddingPass] = useState(false);
 
   if (isPending && !ticket) {
     return (
@@ -47,6 +51,8 @@ export function TicketDetail() {
 
   const trip = trips?.find((t) => t.id === ticket.tripId);
   const dur = duration(ticket.departureAt, ticket.arrivalAt);
+  const pending = needsCheckIn(ticket);
+  const files = ticketFiles(ticket);
   const hasRoute = ticket.origin || ticket.originName || ticket.destination || ticket.destinationName;
   const details: [string, string | null][] = [
     ["Passenger", ticket.passengerName],
@@ -142,8 +148,20 @@ export function TicketDetail() {
               <Sun className="size-3" /> Tap to enlarge for scanning
             </span>
           </button>
+        ) : pending ? (
+          <div className="p-6 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-sm font-semibold">
+              <Clock className="size-4" /> Not checked in yet
+            </div>
+            <p className="mt-1 text-xs text-white/70">Add the boarding pass once you check in online or at the counter.</p>
+            <Button variant="secondary" className="mt-4 rounded-full" onClick={() => setAddingPass(true)}>
+              <Plus /> Add boarding pass
+            </Button>
+          </div>
         ) : (
-          <div className="p-6 text-center text-sm text-white/70">No barcode on this ticket.</div>
+          <div className="p-6 text-center text-sm text-white/70">
+            {ticket.type === "flight" && ticket.checkedIn ? "Checked in. Use your paper boarding pass." : "No barcode on this ticket."}
+          </div>
         )}
       </article>
 
@@ -158,13 +176,18 @@ export function TicketDetail() {
             <ArrowRight className="size-4 text-muted-foreground" />
           </Link>
         )}
-        {ticket.fileUrl && (
-          <button onClick={() => setViewing(true)} className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left">
+        {files.map((f) => (
+          <button key={f.url} onClick={() => setViewing(f)} className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left">
             <FileText className="size-5 text-primary" />
             <div className="min-w-0 flex-1">
-              <div className="text-xs text-muted-foreground">Original file</div>
-              <div className="truncate font-medium">{ticket.fileName ?? "Open file"}</div>
+              <div className="text-xs text-muted-foreground">{KIND_LABEL[f.kind]}</div>
+              <div className="truncate font-medium">{f.name}</div>
             </div>
+          </button>
+        ))}
+        {ticket.type === "flight" && !pending && (
+          <button onClick={() => setAddingPass(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed p-3 text-sm text-muted-foreground">
+            <Plus className="size-4" /> {ticket.barcodeData ? "Replace boarding pass" : "Add boarding pass"}
           </button>
         )}
         {ticket.notes && (
@@ -190,9 +213,11 @@ export function TicketDetail() {
         </button>
       )}
 
-      {viewing && ticket.fileUrl && (
-        <FileViewer src={fileHref(ticket.fileUrl)} name={ticket.fileName ?? "Ticket"} type={ticket.fileType} onClose={() => setViewing(false)} />
+      {viewing && (
+        <FileViewer src={fileHref(viewing.url)} name={viewing.name} type={viewing.type} onClose={() => setViewing(null)} />
       )}
+
+      <AddBoardingPass ticket={ticket} open={addingPass} onOpenChange={setAddingPass} />
 
       <Drawer open={editing} onOpenChange={setEditing} repositionInputs={false}>
         <DrawerContent>

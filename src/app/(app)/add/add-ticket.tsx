@@ -9,18 +9,25 @@ import { TicketForm, type TicketDraft } from "@/components/ticket-form";
 import { CameraScanner } from "@/components/camera-scanner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { uploadTicketFile, useSaveTicket } from "@/lib/client-api";
+import { uploadAttachment, useSaveTicket, useTickets } from "@/lib/client-api";
 import { fieldsFrom, type DecodedBarcode } from "@/lib/parse/extract";
+import { isBcbp } from "@/lib/parse/bcbp";
+import { boardingPassPatch, findMatchingBooking } from "@/lib/tickets";
+import { fmtDay } from "@/lib/format";
+import type { Attachment, Ticket } from "@/lib/types";
 
 type Step =
   | { kind: "choose" }
   | { kind: "camera" }
   | { kind: "working"; status: string }
-  | { kind: "review"; draft: TicketDraft; file?: File; preview?: string; summary: string };
+  | { kind: "review"; draft: TicketDraft; file?: File; preview?: string; summary: string; match?: Ticket | null };
 
 export function AddTicket() {
   const router = useRouter();
   const save = useSaveTicket();
+  const { data: tickets } = useTickets();
+  const matchFor = (draft: TicketDraft) =>
+    draft.barcodeData && isBcbp(draft.barcodeData) ? findMatchingBooking(tickets ?? [], draft) : null;
   const [step, setStep] = useState<Step>({ kind: "choose" });
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -40,6 +47,7 @@ export function AddTicket() {
         draft: result.fields,
         file,
         preview: result.preview,
+        match: matchFor(result.fields),
         summary: found.length ? `Found ${found.join(", ")}. Check the details below.` : "Couldn't read much from this file. Fill in the details below.",
       });
     } catch (e) {
@@ -54,26 +62,46 @@ export function AddTicket() {
     setStep({
       kind: "review",
       draft,
+      match: matchFor(draft),
       summary: draft.type === "flight" ? "Boarding pass scanned. Add the departure time if needed." : "Code scanned. Add the details below.",
     });
-  }, []);
+  }, [tickets]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function uploadStepFile(kind: Attachment["kind"]): Promise<Attachment | undefined> {
+    if (step.kind !== "review" || !step.file) return undefined;
+    const t = toast.loading("Uploading file…");
+    try {
+      return await uploadAttachment(step.file, kind);
+    } catch (e) {
+      console.error(e);
+      toast.warning("Couldn't store the original file (is Vercel Blob set up?). Saving the details anyway.");
+      return undefined;
+    } finally {
+      toast.dismiss(t);
+    }
+  }
+
+  /** Attach this boarding pass to the existing booking instead of creating a duplicate. */
+  async function attachToBooking(booking: Ticket) {
+    if (step.kind !== "review") return;
+    try {
+      const file = await uploadStepFile("boarding");
+      await save.mutateAsync({ id: booking.id, values: boardingPassPatch(booking, step.draft, file) });
+      toast.success("Boarding pass added to your booking");
+      router.replace(`/tickets/${booking.id}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't attach the boarding pass");
+    }
+  }
 
   async function onSubmit(values: TicketDraft) {
     if (step.kind !== "review") return;
     try {
-      let fileFields = {};
-      if (step.file) {
-        const t = toast.loading("Uploading file…");
-        try {
-          fileFields = await uploadTicketFile(step.file);
-        } catch (e) {
-          console.error(e);
-          toast.warning("Couldn't store the original file (is Vercel Blob set up?). Saving the ticket details anyway.");
-        } finally {
-          toast.dismiss(t);
-        }
-      }
-      const ticket = await save.mutateAsync({ values: { ...values, ...fileFields } });
+      const isPass = !!values.barcodeData && isBcbp(values.barcodeData);
+      const file = await uploadStepFile(isPass ? "boarding" : values.type === "flight" ? "booking" : "other");
+      const ticket = await save.mutateAsync({
+        values: { ...values, checkedIn: isPass, attachments: file ? [file] : [] },
+      });
       toast.success("Added to your wallet");
       router.replace(`/tickets/${ticket.id}`);
     } catch (e) {
@@ -131,6 +159,22 @@ export function AddTicket() {
             {step.preview && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={step.preview} alt="Ticket preview" className="max-h-56 w-full rounded-2xl border bg-white object-contain" />
+            )}
+            {step.match && (
+              <div className="rounded-2xl border border-primary/40 bg-primary/10 p-4">
+                <p className="text-sm font-semibold">This looks like the boarding pass for a booking you saved</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {step.match.title} · {fmtDay(step.match.departureAt) ?? "no date"}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button onClick={() => attachToBooking(step.match!)} disabled={save.isPending}>
+                    Attach to booking
+                  </Button>
+                  <Button variant="ghost" onClick={() => setStep({ ...step, match: null })}>
+                    Save as new
+                  </Button>
+                </div>
+              </div>
             )}
             {step.summary && <p className="rounded-2xl bg-star/10 px-4 py-3 text-sm text-star">{step.summary}</p>}
             <TicketForm initial={step.draft} onSubmit={onSubmit} submitLabel="Add to wallet" />
