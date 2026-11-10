@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Clock, FileText, Map, Pencil, Plus, Sun, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, FileText, Map, MapPin, Pencil, Phone, Plus, Sun, Trash2 } from "lucide-react";
 import { fileHref, useDeleteTicket, useSaveTicket, useTicket, useTrips } from "@/lib/client-api";
 import { duration, fmtDay, fmtTime, gradientFor, relative, TYPE_LABEL } from "@/lib/format";
 import { Barcode } from "@/components/barcode";
 import { FileViewer } from "@/components/file-viewer";
-import { Endpoint } from "@/components/ticket-card";
+import { Endpoint, StaySpan } from "@/components/ticket-card";
+import { isStay, mapsHref, stayStatus, telHref } from "@/lib/stays";
 import { TypeIcon } from "@/components/ticket-icon";
 import { TicketForm } from "@/components/ticket-form";
 import { EmptyState } from "@/components/empty-state";
@@ -54,7 +55,20 @@ export function TicketDetail() {
   const pending = needsCheckIn(ticket);
   const files = ticketFiles(ticket);
   const hasRoute = ticket.origin || ticket.originName || ticket.destination || ticket.destinationName;
-  const details: [string, string | null][] = [
+  const stay = isStay(ticket);
+  const status = stay ? stayStatus(ticket) : null;
+  const maps = stay ? mapsHref(ticket) : null;
+  const tel = stay ? telHref(ticket.phone) : null;
+  const details: [string, string | null][] = stay
+    ? [
+        ["Guest", ticket.passengerName],
+        ["Confirmation", ticket.bookingRef],
+        ["Room no.", ticket.reference],
+        ["Room type", ticket.roomType],
+        ["Guests", ticket.guests],
+        ["Booked via", ticket.carrier],
+      ]
+    : [
     ["Passenger", ticket.passengerName],
     ["Booking", ticket.bookingRef],
     ["Seat", ticket.seat],
@@ -98,8 +112,8 @@ export function TicketDetail() {
                   <TypeIcon type={ticket.type} className="size-5" />
                 </span>
                 <div>
-                  <div className="font-semibold">{ticket.carrier || TYPE_LABEL[ticket.type]}</div>
-                  <div className="text-xs text-white/70">{ticket.reference}</div>
+                  <div className="font-semibold">{stay ? "Hotel" : ticket.carrier || TYPE_LABEL[ticket.type]}</div>
+                  <div className="text-xs text-white/70">{stay ? ticket.destinationName : ticket.reference}</div>
                 </div>
               </div>
               <div className="text-right">
@@ -108,9 +122,16 @@ export function TicketDetail() {
               </div>
             </div>
 
-            <h1 className="mt-5 text-lg font-semibold text-white/90">{ticket.title}</h1>
+            <h1 className={cn("mt-5 font-semibold text-white/90", stay ? "text-2xl tracking-tight text-white" : "text-lg")}>{ticket.title}</h1>
+            {status && (
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
+                <span className="size-1.5 animate-pulse rounded-full bg-emerald-300" /> {status.label}
+              </span>
+            )}
 
-            {hasRoute && (
+            {stay ? (
+              <StaySpan ticket={ticket} size="lg" />
+            ) : hasRoute && (
               <div className="mt-4 flex items-center gap-3">
                 <Endpoint code={ticket.origin} name={ticket.originName} time={fmtTime(ticket.departureAt)} />
                 <div className="flex flex-col items-center text-white/70">
@@ -121,7 +142,7 @@ export function TicketDetail() {
               </div>
             )}
 
-            <dl className="mt-6 grid grid-cols-3 gap-x-4 gap-y-3">
+            <dl className={cn("mt-6 grid gap-x-4 gap-y-3", stay ? "grid-cols-2" : "grid-cols-3")}>
               {details.filter(([, v]) => v).map(([k, v]) => (
                 <div key={k} className="min-w-0">
                   <dt className="text-[10px] uppercase tracking-wider text-white/60">{k}</dt>
@@ -148,6 +169,12 @@ export function TicketDetail() {
               <Sun className="size-3" /> Tap to enlarge for scanning
             </span>
           </button>
+        ) : stay ? (
+          <div className="p-6 text-center">
+            <div className="text-[10px] uppercase tracking-wider text-white/60">Show at the front desk</div>
+            <div className="mt-1 font-mono text-2xl font-bold tracking-wider">{ticket.bookingRef ?? "—"}</div>
+            {ticket.passengerName && <div className="mt-1 text-xs text-white/70">Booked under {ticket.passengerName}</div>}
+          </div>
         ) : pending ? (
           <div className="p-6 text-center">
             <div className="flex items-center justify-center gap-1.5 text-sm font-semibold">
@@ -166,6 +193,31 @@ export function TicketDetail() {
       </article>
 
       <div className="mt-5 space-y-3">
+        {stay && (ticket.address || maps || tel) && (
+          <div className="overflow-hidden rounded-2xl border bg-card">
+            {(ticket.address || ticket.destinationName) && (
+              <div className="flex items-start gap-3 p-4">
+                <MapPin className="mt-0.5 size-5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs text-muted-foreground">Address</div>
+                  <div className="font-medium">{ticket.address || ticket.destinationName}</div>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 divide-x border-t">
+              {maps ? (
+                <a href={maps} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 p-3 text-sm font-medium text-primary">
+                  <Map className="size-4" /> Directions
+                </a>
+              ) : <span />}
+              {tel ? (
+                <a href={tel} className="flex items-center justify-center gap-2 p-3 text-sm font-medium text-primary">
+                  <Phone className="size-4" /> Call hotel
+                </a>
+              ) : <span className="flex items-center justify-center p-3 text-sm text-muted-foreground">No phone saved</span>}
+            </div>
+          </div>
+        )}
         {trip && (
           <Link href={`/trips/${trip.id}`} className="flex items-center gap-3 rounded-2xl border bg-card p-4">
             <Map className="size-5 text-primary" />

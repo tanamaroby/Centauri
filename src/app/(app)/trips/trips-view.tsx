@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ArrowRight, Plus } from "lucide-react";
 import { useSaveTrip, useTickets, useTrips } from "@/lib/client-api";
 import { tripRange } from "@/lib/format";
+import { isStay, nightsLabel, stayNights } from "@/lib/stays";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { TripForm } from "@/components/trip-form";
@@ -49,6 +50,7 @@ export function TripsView() {
           trips.map((trip) => {
             const items = tickets?.filter((t) => t.tripId === trip.id) ?? [];
             const types = [...new Set(items.map((t) => t.type))];
+            const booked = nightsLabel(new Set(items.filter(isStay).flatMap(stayNights)).size);
             return (
               <Link key={trip.id} href={`/trips/${trip.id}`} className="flex items-center gap-4 rounded-3xl border bg-card p-5 shadow-sm transition active:scale-[0.99]">
                 <div className="min-w-0 flex-1">
@@ -56,7 +58,7 @@ export function TripsView() {
                   <div className="text-sm text-muted-foreground">{tripRange(trip.startDate, trip.endDate)}</div>
                   <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                     {types.map((t) => <TypeIcon key={t} type={t} className="size-3.5" />)}
-                    <span>{items.length} {items.length === 1 ? "item" : "items"}</span>
+                    <span>{items.length} {items.length === 1 ? "item" : "items"}{booked && ` · ${booked} booked`}</span>
                   </div>
                 </div>
                 <ArrowRight className="size-5 text-muted-foreground" />

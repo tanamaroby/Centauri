@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BARCODE_FORMATS, TICKET_TYPES, type TicketType, type TicketValues } from "@/lib/types";
 import { COLOR_GRADIENTS, TYPE_LABEL } from "@/lib/format";
 import { useTrips } from "@/lib/client-api";
+import { nights, nightsLabel } from "@/lib/stays";
 import { cn } from "@/lib/utils";
 
 export type TicketDraft = Partial<TicketValues>;
@@ -19,7 +20,7 @@ const PLACE_LABELS: Record<TicketType, [string, string]> = {
   boat: ["From (port)", "To (port)"],
   train: ["From (station)", "To (station)"],
   bus: ["From", "To"],
-  stay: ["Place", "Address"],
+  stay: ["City", "Address"],
   event: ["Venue", "Area"],
   other: ["From", "To"],
 };
@@ -75,15 +76,19 @@ export function TicketForm({
         ))}
       </div>
 
-      <Field label="Title">
-        <Input required placeholder="e.g. SQ638 · SIN → NRT" {...text("title")} />
+      <Field label={isStay ? "Hotel name" : "Title"}>
+        <Input required placeholder={isStay ? "e.g. Hotel Indigo Bali Seminyak" : "e.g. SQ638 · SIN → NRT"} {...text("title")} />
       </Field>
 
+      {isStay ? (
+        <StayFields v={v} set={set} text={text} />
+      ) : (
+      <>
       <div className="grid grid-cols-2 gap-3">
-        <Field label={isFlight ? "Airline" : isStay ? "Hotel / host" : "Operator"}>
+        <Field label={isFlight ? "Airline" : "Operator"}>
           <Input {...text("carrier")} />
         </Field>
-        <Field label={isFlight ? "Flight no." : isBoat ? "Vessel" : isStay ? "Room" : "Service / no."}>
+        <Field label={isFlight ? "Flight no." : isBoat ? "Vessel" : "Service / no."}>
           <Input {...text("reference")} />
         </Field>
       </div>
@@ -103,19 +108,21 @@ export function TicketForm({
         )}
       </div>
 
-      <DateTimeField label={isStay ? "Check-in" : "Departure"} value={v.departureAt} onChange={(x) => set("departureAt", x)} />
-      <DateTimeField label={isStay ? "Check-out" : "Arrival"} value={v.arrivalAt} onChange={(x) => set("arrivalAt", x)} />
+      <DateTimeField label="Departure" value={v.departureAt} onChange={(x) => set("departureAt", x)} />
+      <DateTimeField label="Arrival" value={v.arrivalAt} onChange={(x) => set("arrivalAt", x)} />
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Booking ref"><Input autoCapitalize="characters" {...text("bookingRef")} /></Field>
         <Field label="Passenger"><Input autoComplete="name" {...text("passengerName")} /></Field>
-        {!isStay && <Field label="Seat"><Input {...text("seat")} /></Field>}
+        <Field label="Seat"><Input {...text("seat")} /></Field>
         {isFlight && <Field label="Gate"><Input {...text("gate")} /></Field>}
         {isFlight && <Field label="Terminal"><Input {...text("terminal")} /></Field>}
         {(isFlight || type === "train") && <Field label="Class"><Input {...text("cabinClass")} /></Field>}
         {isFlight && <Field label="Boarding group"><Input {...text("boardingGroup")} /></Field>}
         {(isBoat || type === "train") && <Field label={isBoat ? "Deck / cabin" : "Carriage"}><Input {...text("deck")} /></Field>}
       </div>
+      </>
+      )}
 
       <Field label="Trip">
         <NativeSelect value={v.tripId ?? ""} onChange={(e) => set("tripId", e.target.value || null)}>
@@ -151,13 +158,54 @@ export function TicketForm({
       </details>
 
       <Field label="Notes">
-        <Textarea rows={3} placeholder="Baggage allowance, meeting point, pier number…" {...text("notes")} />
+        <Textarea rows={3} placeholder={isStay ? "Breakfast included, late check-out, Wi-Fi password…" : "Baggage allowance, meeting point, pier number…"} {...text("notes")} />
       </Field>
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? <Loader2 className="animate-spin" /> : submitLabel}
       </Button>
     </form>
+  );
+}
+
+type TextBinder = (k: keyof TicketDraft) => {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+};
+
+function StayFields({
+  v,
+  set,
+  text,
+}: {
+  v: TicketDraft;
+  set: <K extends keyof TicketDraft>(k: K, value: TicketDraft[K]) => void;
+  text: TextBinder;
+}) {
+  const n = nights(v);
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="City / area"><Input placeholder="Seminyak" {...text("destinationName")} /></Field>
+        <Field label="Booked via"><Input placeholder="Agoda, direct…" {...text("carrier")} /></Field>
+      </div>
+      <Field label="Address"><Input autoComplete="street-address" {...text("address")} /></Field>
+
+      <div className="space-y-3 rounded-2xl border p-3">
+        <DateTimeField label="Check-in" value={v.departureAt} onChange={(x) => set("departureAt", x)} />
+        <DateTimeField label="Check-out" value={v.arrivalAt} onChange={(x) => set("arrivalAt", x)} />
+        {n && <p className="text-center text-xs font-medium text-muted-foreground">{nightsLabel(n)}</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Confirmation no."><Input autoCapitalize="characters" {...text("bookingRef")} /></Field>
+        <Field label="Guest name"><Input autoComplete="name" {...text("passengerName")} /></Field>
+        <Field label="Room type"><Input placeholder="Deluxe King" {...text("roomType")} /></Field>
+        <Field label="Room no."><Input placeholder="At check-in" {...text("reference")} /></Field>
+        <Field label="Guests"><Input placeholder="2 adults" {...text("guests")} /></Field>
+        <Field label="Hotel phone"><Input type="tel" {...text("phone")} /></Field>
+      </div>
+    </>
   );
 }
 

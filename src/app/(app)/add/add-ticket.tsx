@@ -136,7 +136,7 @@ export function AddTicket() {
       <div className="px-5">
         {step.kind === "choose" && (
           <div className="space-y-3">
-            <Option icon={FileUp} title="Upload PDF or image" description="E-tickets, boarding passes, screenshots. We read the barcode and text." onClick={() => fileInput.current?.click()} />
+            <Option icon={FileUp} title="Upload PDF or image" description="E-tickets, boarding passes, hotel confirmations, screenshots. We read the barcode and text." onClick={() => fileInput.current?.click()} />
             <Option icon={ScanLine} title="Scan a QR or barcode" description="Use the camera on a printed or on-screen ticket." onClick={() => setStep({ kind: "camera" })} />
             <Option icon={Keyboard} title="Enter manually" description="Type in the details yourself." onClick={() => setStep({ kind: "review", draft: {}, summary: "" })} />
             <p className="px-1 pt-2 text-xs text-muted-foreground">

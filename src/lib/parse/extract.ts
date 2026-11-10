@@ -4,6 +4,7 @@ import type { BarcodeFormat as ZxingFormat } from "@zxing/library";
 import type { BarcodeFormat, TicketValues } from "@/lib/types";
 import { bcbpToTicket } from "./bcbp";
 import { buildTitle, parseTicketText } from "./text";
+import { parseHotelText } from "./hotel";
 
 export type DecodedBarcode = { data: string; format: BarcodeFormat };
 
@@ -176,7 +177,9 @@ export async function extractFromFile(
 
 /** Merge what the barcode and the text tell us; the barcode wins on conflicts. */
 export function fieldsFrom(text: string, barcodes: DecodedBarcode[]): Partial<TicketValues> {
-  const fromText = text ? parseTicketText(text) : {};
+  let fromText = text ? parseTicketText(text) : {};
+  // Hotel confirmations get their own parser (check-in/out, room, guests, address).
+  if (fromText.type === "stay") fromText = parseHotelText(text);
   const primary = barcodes[0];
   const fromBarcode = primary ? (bcbpToTicket(primary.data) ?? {}) : {};
   const merged: Partial<TicketValues> = { ...fromText, ...fromBarcode };

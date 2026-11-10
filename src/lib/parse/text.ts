@@ -17,7 +17,7 @@ function detectType(t: string): TicketType {
     ["boat", score(["ferry", "vessel", "harbour", "harbor", "pier", "port", "boat", "cruise", "sailing", "jetty", "embark", "fast boat", "speedboat"])],
     ["train", score(["train", "rail", "platform", "carriage", "coach no", "shinkansen", "railway", "station"])],
     ["bus", score(["bus ", "coach", "bus station", "shuttle"])],
-    ["stay", score(["hotel", "check-in date", "check-out", "reservation", "nights", "room type", "accommodation"])],
+    ["stay", score(["hotel", "check-in date", "check-out", "checkout", "nights", "night stay", "room type", "accommodation", "property", "adults", "guest name", "booking.com", "agoda", "airbnb", "resort", "villa", "hostel", "free cancellation", "breakfast"])],
     ["event", score(["concert", "admission", "venue", "event", "entry", "museum", "show", "row "])],
   ];
   scores.sort((a, b) => b[1] - a[1]);
@@ -26,7 +26,7 @@ function detectType(t: string): TicketType {
 
 type DateHit = { index: number; date: string };
 
-function findDates(t: string): DateHit[] {
+export function findDates(t: string): DateHit[] {
   const hits: DateHit[] = [];
   const add = (index: number, y: number, m: number, d: number) => {
     if (m < 1 || m > 12 || d < 1 || d > 31) return;
@@ -56,7 +56,7 @@ function findDates(t: string): DateHit[] {
   return hits;
 }
 
-function findTimes(t: string) {
+export function findTimes(t: string) {
   const out: { index: number; time: string }[] = [];
   for (const m of t.matchAll(/\b([01]?\d|2[0-3])[:.h]([0-5]\d)\s*(am|pm|AM|PM)?(?![\d.])/g)) {
     let h = +m[1];

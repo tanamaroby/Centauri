@@ -8,6 +8,7 @@ import { ArrowLeft, Check, ListPlus, Pencil, Trash2 } from "lucide-react";
 import { useDeleteTrip, useSaveTicket, useSaveTrip, useTickets, useTrips } from "@/lib/client-api";
 import { dayKey, fmtDay, tripRange, TYPE_LABEL } from "@/lib/format";
 import { Timeline } from "@/components/timeline";
+import { TripOverview } from "@/components/trip-overview";
 import { TripForm } from "@/components/trip-form";
 import { TypeIcon } from "@/components/ticket-icon";
 import { EmptyState } from "@/components/empty-state";
@@ -76,6 +77,8 @@ export function TripDetail() {
         {trip.notes && <p className="mt-3 whitespace-pre-wrap text-sm">{trip.notes}</p>}
         <Button className="mt-4" variant="outline" onClick={() => setPicking(true)}><ListPlus /> Add tickets</Button>
       </header>
+
+      <TripOverview trip={trip} items={items} />
 
       {items.length ? (
         <Timeline tickets={items} />

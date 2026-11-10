@@ -56,7 +56,7 @@ export function isUpcoming(t: Ticket, now = new Date()) {
 export const dayKey = (v: string | null | undefined) => (v ? v.slice(0, 10) : "undated");
 
 export const TYPE_LABEL: Record<TicketType, string> = {
-  flight: "Flight", boat: "Boat", train: "Train", bus: "Bus", stay: "Stay", event: "Event", other: "Ticket",
+  flight: "Flight", boat: "Boat", train: "Train", bus: "Bus", stay: "Hotel", event: "Event", other: "Ticket",
 };
 
 export const TYPE_GRADIENT: Record<TicketType, string> = {

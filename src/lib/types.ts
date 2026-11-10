@@ -43,6 +43,11 @@ export const ticketInputSchema = z.object({
   cabinClass: opt,
   boardingGroup: opt,
   deck: opt,
+  /** Hotels: street address, room type, guests ("2 adults") and the property's phone number. */
+  address: opt,
+  roomType: opt,
+  guests: opt,
+  phone: opt,
   notes: z.string().trim().max(5000).nullish().transform((v) => (v ? v : null)),
   barcodeData: z.string().max(4000).nullish().transform((v) => (v ? v : null)),
   barcodeFormat: z.enum(BARCODE_FORMATS).nullish().transform((v) => v ?? null),

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Clock, QrCode } from "lucide-react";
+import { ArrowRight, Clock, Moon, QrCode } from "lucide-react";
+import { isStay, nights, nightsLabel, stayDay, stayStatus } from "@/lib/stays";
 import { needsCheckIn } from "@/lib/tickets";
 import type { Ticket } from "@/lib/types";
 import { duration, fmtDay, fmtTime, gradientFor, relative, TYPE_LABEL } from "@/lib/format";
@@ -21,6 +22,7 @@ export function TicketCard({ ticket, stacked = false, className }: { ticket: Tic
   const hasRoute = ticket.origin || ticket.originName || ticket.destination || ticket.destinationName;
   const dur = duration(ticket.departureAt, ticket.arrivalAt);
   const rel = relative(ticket.departureAt);
+  const stay = isStay(ticket);
 
   return (
     <Link
@@ -40,8 +42,17 @@ export function TicketCard({ ticket, stacked = false, className }: { ticket: Tic
               <TypeIcon type={ticket.type} className="size-4" />
             </span>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold">{ticket.carrier || TYPE_LABEL[ticket.type]}</div>
-              <div className="truncate text-xs text-white/70">{ticket.reference || ticket.title}</div>
+              {stay ? (
+                <>
+                  <div className="truncate text-sm font-semibold">{ticket.title}</div>
+                  <div className="truncate text-xs text-white/70">{ticket.destinationName || ticket.carrier || "Hotel"}</div>
+                </>
+              ) : (
+                <>
+                  <div className="truncate text-sm font-semibold">{ticket.carrier || TYPE_LABEL[ticket.type]}</div>
+                  <div className="truncate text-xs text-white/70">{ticket.reference || ticket.title}</div>
+                </>
+              )}
             </div>
           </div>
           <div className="shrink-0 text-right">
@@ -50,7 +61,9 @@ export function TicketCard({ ticket, stacked = false, className }: { ticket: Tic
           </div>
         </div>
 
-        {hasRoute ? (
+        {stay ? (
+          <StaySpan ticket={ticket} />
+        ) : hasRoute ? (
           <div className="mt-6 flex items-center gap-3">
             <Endpoint code={ticket.origin} name={ticket.originName} time={fmtTime(ticket.departureAt)} />
             <div className="flex flex-col items-center text-white/70">
@@ -67,13 +80,20 @@ export function TicketCard({ ticket, stacked = false, className }: { ticket: Tic
         )}
 
         <div className="mt-5 flex items-center justify-between border-t border-dashed border-white/25 pt-3 text-xs">
-          <div className="flex gap-4">
-            {ticket.seat && <Field label="Seat" value={ticket.seat} />}
+          <div className="flex min-w-0 gap-4">
+            {stay && ticket.roomType && <Field label="Room" value={ticket.roomType} />}
+            {stay && ticket.guests && <Field label="Guests" value={ticket.guests} />}
+            {!stay && ticket.seat && <Field label="Seat" value={ticket.seat} />}
             {ticket.gate && <Field label="Gate" value={ticket.gate} />}
             {ticket.deck && <Field label="Deck" value={ticket.deck} />}
             {ticket.bookingRef && <Field label="Booking" value={ticket.bookingRef} />}
           </div>
-          {needsCheckIn(ticket) ? (
+          {stay ? (
+            (() => {
+              const st = stayStatus(ticket);
+              return st ? <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-medium">{st.label}</span> : null;
+            })()
+          ) : needsCheckIn(ticket) ? (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">
               <Clock className="size-3" /> Check-in pending
             </span>
@@ -86,11 +106,37 @@ export function TicketCard({ ticket, stacked = false, className }: { ticket: Tic
   );
 }
 
+/** Check-in → nights → check-out, for hotel cards. */
+export function StaySpan({ ticket, size = "md" }: { ticket: Ticket; size?: "md" | "lg" }) {
+  const a = stayDay(ticket.departureAt);
+  const b = stayDay(ticket.arrivalAt);
+  const n = nightsLabel(nights(ticket));
+  const big = size === "lg" ? "text-3xl" : "text-2xl";
+  return (
+    <div className="mt-6 flex items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase tracking-wider text-white/60">Check-in</div>
+        <div className={cn("truncate font-bold tracking-tight", big)}>{a.day}</div>
+        <div className="font-mono text-xs text-white/80">{[a.weekday, a.time && `from ${a.time}`].filter(Boolean).join(" · ")}</div>
+      </div>
+      <div className="flex flex-col items-center text-white/80">
+        <Moon className="size-4" />
+        {n && <span className="mt-0.5 whitespace-nowrap text-[10px] font-medium">{n}</span>}
+      </div>
+      <div className="min-w-0 flex-1 text-right">
+        <div className="text-[10px] uppercase tracking-wider text-white/60">Check-out</div>
+        <div className={cn("truncate font-bold tracking-tight", big)}>{b.day}</div>
+        <div className="font-mono text-xs text-white/80">{[b.weekday, b.time && `by ${b.time}`].filter(Boolean).join(" · ")}</div>
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-white/60">{label}</div>
-      <div className="font-mono font-semibold">{value}</div>
+      <div className="truncate font-mono font-semibold">{value}</div>
     </div>
   );
 }
