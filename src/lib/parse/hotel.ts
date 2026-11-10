@@ -26,7 +26,7 @@ const PLATFORMS: [RegExp, string][] = [
 
 const PROPERTY_WORDS =
   /\b(hotel|resort|inn|suites?|villas?|hostel|lodge|residences?|guest\s?house|homestay|apartments?|ryokan|motel|b&b|bed and breakfast|boutique|retreat|bungalows?|cottage|townhouse|house|home|loft|condo|flat|cabin|chalet|machiya|riad|glamping|camp|hyatt|hilton|marriott|sheraton|westin|novotel|ibis|mercure|pullman|sofitel|accor|ihg|holiday inn|crowne plaza|intercontinental|ritz|four seasons|aman|shangri-la|mandarin oriental|swiss[oô]tel|kempinski|fairmont|radisson|mövenpick|movenpick|ascott|citadines|oyo|reddoorz)\b/i;
-const NOT_A_NAME = /\b(booking|confirm|check|polic|cancel|email|www\.|https?:|@|thank|dear|payment|total|price|tax|receipt|invoice|summary|details|number|reservation|guest|room type|important|please|your|from|until)\b/i;
+const NOT_A_NAME = /\b(booking|confirm|check|polic|cancel|email|www\.|https?:|@|thank|dear|payment|total|price|tax|receipt|invoice|summary|details|number|reservation|guest|room type|important|please|your|from|until|facilities|amenities|policy|policies|information|services|rules|terms|note|transportation|restaurant)\b/i;
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -61,10 +61,10 @@ function labelIndex(text: string, re: RegExp) {
 
 function hotelName(text: string, lines: string[]) {
   const labelled =
-    first(text, /\b(?:hotel|property|accommodation|hotel name|property name)\s*(?:name)?\s*[:\-]\s*([^\n]{3,80})/i) ??
-    first(text, /\b(?:your (?:stay|reservation|booking) (?:at|in)|stay at|reservation at|welcome to)\s+([A-Z][^\n.!,]{2,60})/);
+    first(text, /\b(?:hotel name|property name|hotel|property|accommodation)\s*[:\-]\s*([^\n]{3,80})/i) ??
+    first(text, /\b(?:greetings from|welcome to|thank you for choosing|hosting you at|your (?:stay|reservation|booking) (?:at|in)|stay at|reservation at)\s+(?:the\s+)?([A-Z][^\n.!,]{2,60})/i);
   if (labelled && !NOT_A_NAME.test(labelled)) return labelled;
-  const line = lines.find((l) => l.length >= 4 && l.length <= 70 && PROPERTY_WORDS.test(l) && !NOT_A_NAME.test(l) && !/\d{3,}/.test(l));
+  const line = lines.find((l) => l.length >= 4 && l.length <= 70 && !l.endsWith(":") && PROPERTY_WORDS.test(l) && !NOT_A_NAME.test(l) && !/\d{3,}/.test(l));
   return clean(line);
 }
 
@@ -77,14 +77,26 @@ function address(text: string, lines: string[], name: string | null) {
     const next = lines[i + 1];
     if (i >= 0 && next && /\d/.test(next) && /,/.test(next) && !NOT_A_NAME.test(next)) return clean(next, 140);
   }
-  const street = lines.find((l) => /\b(jalan|jl\.|street|st\.|road|rd\.?|avenue|ave\.?|blvd|boulevard|lane|straße|strasse|via|rue|calle|soi|moo|chome|dori|gang)\b/i.test(l) && /\d/.test(l) && l.length < 140 && !NOT_A_NAME.test(l));
-  return clean(street, 140);
+  const i = lines.findIndex(
+    (l) =>
+      /(?:\b(?:jalan|street|road|avenue|blvd|boulevard|lane|straße|strasse|via|rue|calle|soi|moo|chome|dori|gang|komplek|kompleks)\b|\b(?:jl|st|rd|ave)\.)/i.test(l) &&
+      l.length < 160 &&
+      !NOT_A_NAME.test(l),
+  );
+  if (i < 0) return null;
+  // Addresses often wrap onto a second line ("Kota Batam, Kepulauan Riau 29444").
+  let addr = lines[i];
+  const next = lines[i + 1];
+  if (next && !next.includes(":") && !NOT_A_NAME.test(next) && (addr.trim().endsWith(",") || /\b\d{4,6}\b/.test(next))) addr = `${addr.replace(/,\s*$/, "")}, ${next}`;
+  return /\d/.test(addr) ? clean(addr, 160) : null;
 }
 
 function cityFrom(addr: string | null) {
   if (!addr) return null;
   const parts = addr.split(",").map((p) => p.trim()).filter(Boolean);
   if (parts.length < 2) return null;
+  const kota = parts.find((p) => /^(kota|city of|kabupaten|kab\.)\s+/i.test(p));
+  if (kota) return clean(kota.replace(/^(kota|city of|kabupaten|kab\.)\s+/i, ""), 40);
   // Prefer the last part without digits that isn't the country (second to last), else the last.
   const noDigits = parts.filter((p) => !/\d/.test(p));
   const pick = noDigits.length >= 2 ? noDigits[noDigits.length - 2] : noDigits[noDigits.length - 1];
@@ -103,9 +115,13 @@ function guests(text: string) {
   return g ? `${g[1]} ${+g[1] === 1 ? "guest" : "guests"}` : null;
 }
 
+const titleCase = (s: string) => (s === s.toUpperCase() ? s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : s);
+
 function roomType(text: string, lines: string[]) {
-  const labelled = first(text, /\b(?:room\s*type|room\s*category|accommodation type|unit type|room)\s*[:\-]\s*([^\n]{3,80})/i);
-  if (labelled && !/^\d+$/.test(labelled)) return labelled;
+  const labelled =
+    first(text, /\b(?:room\s*type|room\s*category|accommodation type|unit type)\s*[:\-]?[ \t]+([^\n]{3,80})/i) ??
+    first(text, /\broom\s*[:\-]\s*([^\n]{3,80})/i);
+  if (labelled && !/^\d+$/.test(labelled)) return titleCase(labelled);
   const line = lines.find(
     (l) =>
       l.length < 80 &&
@@ -154,7 +170,25 @@ export function parseHotelText(raw: string): Partial<TicketValues> {
     const coTime = co ? near(co.index, ciTime?.index) : undefined;
     out.departureAt = ciTime ? `${ci.date}T${ciTime.time}` : ci.date;
     if (co) out.arrivalAt = coTime && coTime.time !== ciTime?.time ? `${co.date}T${coTime.time}` : co.date;
+    // Policy sentences: "check-in time is after 2 pm, and check-out is before 12 pm".
+    const policy = (re: RegExp) => {
+      const m = text.match(re);
+      if (!m) return null;
+      let h = +m[1];
+      const ap = m[3]?.toLowerCase();
+      if (ap === "pm" && h < 12) h += 12;
+      if (ap === "am" && h === 12) h = 0;
+      return h < 24 ? `${pad(h)}:${m[2] ?? "00"}` : null;
+    };
+    const ciPolicy = policy(/check[\s-]*in[^.\n]{0,40}?(?:after|from|starts? at|begins? at)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i);
+    const coPolicy = policy(/check[\s-]*out[^.\n]{0,40}?(?:before|by|until|no later than)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i);
+    if (ciPolicy && !out.departureAt.includes("T")) out.departureAt = `${out.departureAt}T${ciPolicy}`;
+    if (coPolicy && out.arrivalAt && !out.arrivalAt.includes("T")) out.arrivalAt = `${out.arrivalAt}T${coPolicy}`;
   }
+
+  const board = first(text, /\b(?:boards?|board basis|meal plan|meals?)\s*[:\-]?[ \t]+([A-Za-z][^\n]{2,40})/i);
+  if (board && /breakfast|half|full|all.inclusive|room only|dinner/i.test(board)) out.notes = `Meals: ${titleCase(board)}`;
+  else if (/breakfast (?:is )?included|with breakfast|incl\.? breakfast/i.test(text)) out.notes = "Breakfast included";
 
   if (!out.title) out.title = out.destinationName ? `Stay in ${out.destinationName}` : "Hotel stay";
   return Object.fromEntries(Object.entries(out).filter(([, v]) => v != null && v !== "")) as Partial<TicketValues>;

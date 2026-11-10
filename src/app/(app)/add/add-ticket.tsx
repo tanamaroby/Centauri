@@ -37,11 +37,12 @@ export function AddTicket() {
     try {
       const { extractFromFile } = await import("@/lib/parse/extract");
       const result = await extractFromFile(file, { onStatus: (status) => setStep({ kind: "working", status }) });
-      const found = [
-        result.barcodes.length ? `${result.barcodes[0].format.toUpperCase()} code` : null,
-        result.fields.departureAt ? "date" : null,
-        result.fields.bookingRef ? "booking ref" : null,
-      ].filter(Boolean);
+      const f = result.fields;
+      const found = (
+        f.type === "stay"
+          ? [f.title && f.title !== "Hotel stay" ? "hotel" : null, f.departureAt && f.arrivalAt ? "check-in and check-out" : f.departureAt ? "check-in date" : null, f.bookingRef ? "confirmation no." : null, f.roomType ? "room" : null]
+          : [result.barcodes.length ? `${result.barcodes[0].format.toUpperCase()} code` : null, f.departureAt ? "date" : null, f.bookingRef ? "booking ref" : null]
+      ).filter(Boolean);
       setStep({
         kind: "review",
         draft: result.fields,
