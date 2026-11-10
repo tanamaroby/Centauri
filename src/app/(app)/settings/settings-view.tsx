@@ -30,7 +30,7 @@ export function SettingsView() {
           <CardHeader>
             <CardTitle>Sync</CardTitle>
             <CardDescription>
-              {tickets?.length ?? 0} tickets and {trips?.length ?? 0} trips, stored in your database and cached on this device for offline use.
+              {plural(tickets?.length ?? 0, "ticket")} and {plural(trips?.length ?? 0, "trip")}, stored in your database and cached on this device for offline use.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -79,3 +79,5 @@ export function SettingsView() {
     </>
   );
 }
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
