@@ -7,6 +7,7 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorker } from "@/components/service-worker";
+import { ThemeColor } from "@/components/theme-color";
 
 const WEEK = 1000 * 60 * 60 * 24 * 7;
 
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: ReactNode }) {
         {children}
         <Toaster />
         <ServiceWorker />
+        <ThemeColor />
       </PersistQueryClientProvider>
     </ThemeProvider>
   );

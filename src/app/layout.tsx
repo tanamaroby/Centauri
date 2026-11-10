@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Your personal ticket wallet and trip planner.",
   applicationName: "Centauri",
   robots: { index: false, follow: false },
-  appleWebApp: { capable: true, title: "Centauri", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Centauri", statusBarStyle: "default" },
   formatDetection: { telephone: false },
   icons: {
     icon: [
@@ -28,19 +28,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0b1c" },
-    { media: "(prefers-color-scheme: light)", color: "#f9fafd" },
-  ],
+  // Matches the default (dark) background; ThemeColor syncs it with the in-app theme.
+  themeColor: "#0a0b1c",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
-        {/* Solid status-bar backdrop. With a translucent status bar, iOS (notably iOS 26 standalone PWAs)
-            otherwise blurs/fades whatever scrolls under the notch / Dynamic Island. */}
-        <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[env(safe-area-inset-top)] bg-background" />
         <Providers>{children}</Providers>
       </body>
     </html>
