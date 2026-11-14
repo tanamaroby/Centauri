@@ -6,13 +6,17 @@ export type TicketType = (typeof TICKET_TYPES)[number];
 export const BARCODE_FORMATS = ["qrcode", "pdf417", "azteccode", "datamatrix", "code128", "ean13"] as const;
 export type BarcodeFormat = (typeof BARCODE_FORMATS)[number];
 
-export const ATTACHMENT_KINDS = ["booking", "boarding", "other"] as const;
+export const ATTACHMENT_KINDS = ["booking", "boarding", "receipt", "baggage", "addon", "other"] as const;
 export type AttachmentKind = (typeof ATTACHMENT_KINDS)[number];
 export const attachmentSchema = z.object({
   url: z.string().url().max(1000),
   name: z.string().max(300),
   type: z.string().max(200).nullish().transform((v) => v ?? null),
-  kind: z.enum(ATTACHMENT_KINDS).default("other"),
+  kind: z.enum(ATTACHMENT_KINDS).catch("other").default("other"),
+  /** Optional free-text label, e.g. "Extra 20 kg bag" or "Seat upgrade". */
+  label: z.string().trim().max(120).nullish().transform((v) => (v ? v : null)),
+  /** ISO timestamp of when the file was added (missing on older attachments). */
+  addedAt: z.string().max(40).nullish().transform((v) => v ?? null),
 });
 export type Attachment = z.output<typeof attachmentSchema>;
 
@@ -58,7 +62,7 @@ export const ticketInputSchema = z.object({
   color: opt,
   /** For flights: false until a boarding pass is attached (booking confirmation only). */
   checkedIn: z.boolean().default(false),
-  attachments: z.array(attachmentSchema).max(20).default([]),
+  attachments: z.array(attachmentSchema).max(50).default([]),
 });
 export type TicketInput = z.input<typeof ticketInputSchema>;
 export type TicketValues = z.output<typeof ticketInputSchema>;

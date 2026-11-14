@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Clock, FileText, Map, MapPin, Pencil, Phone, Plus, Sun, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Map, MapPin, Pencil, Phone, Plus, Sun, Trash2 } from "lucide-react";
 import { fileHref, useDeleteTicket, useSaveTicket, useTicket, useTrips } from "@/lib/client-api";
 import { duration, fmtDay, fmtTime, gradientFor, relative, TYPE_LABEL } from "@/lib/format";
 import { Barcode } from "@/components/barcode";
@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { AddBoardingPass } from "@/components/add-boarding-pass";
-import { KIND_LABEL, needsCheckIn, ticketFiles } from "@/lib/tickets";
+import { TicketAttachments } from "@/components/ticket-attachments";
+import { needsCheckIn } from "@/lib/tickets";
 import type { Attachment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +54,6 @@ export function TicketDetail() {
   const trip = trips?.find((t) => t.id === ticket.tripId);
   const dur = duration(ticket.departureAt, ticket.arrivalAt);
   const pending = needsCheckIn(ticket);
-  const files = ticketFiles(ticket);
   const hasRoute = ticket.origin || ticket.originName || ticket.destination || ticket.destinationName;
   const stay = isStay(ticket);
   const status = stay ? stayStatus(ticket) : null;
@@ -228,15 +228,6 @@ export function TicketDetail() {
             <ArrowRight className="size-4 text-muted-foreground" />
           </Link>
         )}
-        {files.map((f) => (
-          <button key={f.url} onClick={() => setViewing(f)} className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left">
-            <FileText className="size-5 text-primary" />
-            <div className="min-w-0 flex-1">
-              <div className="text-xs text-muted-foreground">{KIND_LABEL[f.kind]}</div>
-              <div className="truncate font-medium">{f.name}</div>
-            </div>
-          </button>
-        ))}
         {ticket.type === "flight" && !pending && (
           <button onClick={() => setAddingPass(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed p-3 text-sm text-muted-foreground">
             <Plus className="size-4" /> {ticket.barcodeData ? "Replace boarding pass" : "Add boarding pass"}
@@ -248,6 +239,7 @@ export function TicketDetail() {
             <p className="whitespace-pre-wrap text-sm">{ticket.notes}</p>
           </div>
         )}
+        <TicketAttachments ticket={ticket} onView={setViewing} />
         {ticket.departureAt && (
           <p className="text-center text-xs text-muted-foreground">{fmtDay(ticket.departureAt, "long")}</p>
         )}
