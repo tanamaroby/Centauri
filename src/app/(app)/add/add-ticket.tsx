@@ -99,7 +99,7 @@ export function AddTicket() {
     if (step.kind !== "review") return;
     try {
       const isPass = !!values.barcodeData && isBcbp(values.barcodeData);
-      const file = await uploadStepFile(isPass ? "boarding" : values.type === "flight" ? "booking" : "other");
+      const file = await uploadStepFile(isPass ? "boarding" : values.type === "flight" || values.type === "stay" ? "booking" : "other");
       const ticket = await save.mutateAsync({
         values: { ...values, checkedIn: isPass, attachments: file ? [file] : [] },
       });

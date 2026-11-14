@@ -105,9 +105,40 @@ export async function uploadTicketFile(file: File) {
   return { fileUrl: blob.url, fileName: file.name, fileType: file.type || null };
 }
 
-export async function uploadAttachment(file: File, kind: Attachment["kind"]): Promise<Attachment> {
+export async function uploadAttachment(file: File, kind: Attachment["kind"], label?: string | null): Promise<Attachment> {
   const { fileUrl, fileName, fileType } = await uploadTicketFile(file);
-  return { url: fileUrl, name: fileName, type: fileType, kind };
+  return { url: fileUrl, name: fileName, type: fileType, kind, label: label?.trim() || null, addedAt: new Date().toISOString() };
+}
+
+function useTicketMutation<V>(fn: (vars: V) => Promise<Ticket>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (ticket) => {
+      qc.setQueryData<Ticket[]>(keys.tickets, (old = []) => [...old.filter((t) => t.id !== ticket.id), ticket]);
+      qc.invalidateQueries({ queryKey: keys.tickets });
+    },
+  });
+}
+
+/** Appends files to a ticket (server-side merge, safe across devices). */
+export function useAddAttachments() {
+  return useTicketMutation(({ id, attachments }: { id: string; attachments: Attachment[] }) =>
+    api<Ticket>(`/api/tickets/${id}/attachments`, { method: "POST", body: JSON.stringify({ attachments }) }),
+  );
+}
+
+export function useUpdateAttachment() {
+  return useTicketMutation(({ id, ...body }: { id: string; url: string; label?: string | null; kind?: Attachment["kind"] }) =>
+    api<Ticket>(`/api/tickets/${id}/attachments`, { method: "PATCH", body: JSON.stringify(body) }),
+  );
+}
+
+/** Removes a file from a ticket and deletes it from storage. */
+export function useRemoveAttachment() {
+  return useTicketMutation(({ id, url }: { id: string; url: string }) =>
+    api<Ticket>(`/api/tickets/${id}/attachments?url=${encodeURIComponent(url)}`, { method: "DELETE" }),
+  );
 }
 
 export const fileHref = (fileUrl: string) => `/api/files?url=${encodeURIComponent(fileUrl)}`;
