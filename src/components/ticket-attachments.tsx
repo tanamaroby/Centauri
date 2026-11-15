@@ -239,24 +239,7 @@ function AddAttachments({ ticket, open, onOpenChange }: { ticket: Ticket; open: 
                 </div>
               ))}
 
-              {step.suggestions.length > 0 && (
-                <div className="rounded-2xl border bg-card">
-                  <div className="p-4 pb-2">
-                    <div className="font-semibold">Update this ticket?</div>
-                    <p className="text-sm text-muted-foreground">Found in the file. Untick anything that&apos;s wrong.</p>
-                  </div>
-                  {step.suggestions.map((s) => (
-                    <label key={s.key} className="flex items-start gap-3 border-t px-4 py-3">
-                      <input type="checkbox" className="mt-1 size-4 accent-primary" checked={s.checked} onChange={() => toggle(s.key)} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs text-muted-foreground">{s.label}</span>
-                        <span className="block whitespace-pre-wrap break-words font-medium">{s.value}</span>
-                        {s.current && <span className="block text-xs text-muted-foreground">Replaces {s.current}</span>}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
+              <SuggestionChecklist suggestions={step.suggestions} onToggle={toggle} />
 
               <div className="flex gap-2">
                 <Button variant="secondary" className="flex-1" onClick={() => setStep({ kind: "choose" })}>
@@ -285,8 +268,31 @@ function combine(a: MergeSuggestion[], b: MergeSuggestion[]) {
   return out;
 }
 
+/** "Update this ticket?" list of values found in a file, each with a checkbox. */
+export function SuggestionChecklist({ suggestions, onToggle }: { suggestions: MergeSuggestion[]; onToggle: (key: MergeSuggestion["key"]) => void }) {
+  if (!suggestions.length) return null;
+  return (
+    <div className="rounded-2xl border bg-card">
+      <div className="p-4 pb-2">
+        <div className="font-semibold">Update this ticket?</div>
+        <p className="text-sm text-muted-foreground">Found in the file. Untick anything that&apos;s wrong.</p>
+      </div>
+      {suggestions.map((s) => (
+        <label key={s.key} className="flex items-start gap-3 border-t px-4 py-3">
+          <input type="checkbox" className="mt-1 size-4 accent-primary" checked={s.checked} onChange={() => onToggle(s.key)} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs text-muted-foreground">{s.label}</span>
+            <span className="block whitespace-pre-wrap break-words font-medium">{s.value}</span>
+            {s.current && <span className="block text-xs text-muted-foreground">Replaces {s.current}</span>}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 /** Boarding passes are added through their own flow, but an existing one can keep its kind. */
-function kindOptions(current: Attachment["kind"]) {
+export function kindOptions(current: Attachment["kind"]) {
   const kinds = EXTRA_KINDS.includes(current) ? EXTRA_KINDS : [current, ...EXTRA_KINDS];
   return kinds.map((k) => (
     <option key={k} value={k}>
