@@ -72,4 +72,16 @@ async function ensureSchema(db: Db) {
   }
   await db.execute(sql`CREATE INDEX IF NOT EXISTS tickets_departure_idx ON tickets (departure_at)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS tickets_trip_idx ON tickets (trip_id)`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint text PRIMARY KEY,
+    p256dh text NOT NULL,
+    auth text NOT NULL,
+    time_zone text, user_agent text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS push_log (
+    key text PRIMARY KEY,
+    sent_at timestamptz NOT NULL DEFAULT now()
+  )`);
 }

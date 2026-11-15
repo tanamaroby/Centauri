@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { LogOut, Moon, RefreshCw, Share, SquarePlus, Sun, SunMoon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { NotificationsCard } from "@/components/notifications-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useTickets, useTrips } from "@/lib/client-api";
@@ -45,6 +46,8 @@ export function SettingsView() {
             </Button>
           </CardContent>
         </Card>
+
+        <NotificationsCard />
 
         <Card>
           <CardHeader><CardTitle>Appearance</CardTitle></CardHeader>

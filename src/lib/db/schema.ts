@@ -53,3 +53,21 @@ export const tickets = pgTable(
   },
   (t) => [index("tickets_departure_idx").on(t.departureAt), index("tickets_trip_idx").on(t.tripId)],
 );
+
+/** One row per device that turned on notifications (Web Push). */
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  endpoint: text("endpoint").primaryKey(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  /** The device's IANA time zone, used for tickets whose place has no known zone. */
+  timeZone: text("time_zone"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Reminders already sent, so the scheduler never sends one twice. */
+export const pushLog = pgTable("push_log", {
+  key: text("key").primaryKey(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+});
