@@ -1,5 +1,5 @@
 /* Centauri service worker: offline app shell + ticket file cache. */
-const VERSION = "centauri-v2";
+const VERSION = "centauri-v3";
 const SHELL = `${VERSION}-shell`;
 const FILES = `${VERSION}-files`;
 const PRECACHE = ["/", "/timeline", "/trips", "/add", "/offline.html", "/icons/icon-192.png"];
@@ -80,4 +80,52 @@ self.addEventListener("fetch", (event) => {
         .catch(async () => (await caches.match(req)) || (await caches.match("/")) || caches.match("/offline.html")),
     );
   }
+});
+
+// Reminders sent by the server (Web Push). iOS needs a visible notification for every push.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "Centauri";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag,
+      data: { url: data.url || "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const win = wins.find((w) => w.url.startsWith(self.location.origin));
+      if (win) return win.navigate(target).then((w) => (w || win).focus());
+      return self.clients.openWindow(target);
+    }),
+  );
+});
+
+// The push service can rotate a subscription; save the new one.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  const options = event.oldSubscription && event.oldSubscription.options;
+  if (!options) return;
+  event.waitUntil(
+    self.registration.pushManager.subscribe(options).then((sub) =>
+      fetch("/api/push/subscribe", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: sub.toJSON(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      }),
+    ),
+  );
 });

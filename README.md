@@ -15,6 +15,7 @@ Drop in a boarding pass PDF, a ferry ticket screenshot, or scan a QR code. Centa
   - Live camera scanning of QR / PDF417 / Aztec / Data Matrix / Code 128
   - Everything lands in an editable form before saving
 - **Trips and timeline**: group tickets into trips, view a day-by-day itinerary.
+- **Reminders**: push notifications on iPhone (iOS 16.4+, installed to the Home Screen) a day and a few hours before flights, ferries, trains and buses, and for hotel check-in and check-out. Flight times are scheduled in the departure airport's time zone.
 - **Sync**: Neon Postgres (via Drizzle) for data, Vercel Blob for original files (private store).
 - **Offline**: tickets are cached on the device (React Query + localStorage), and a service worker caches the app shell and ticket files.
 - **Private**: single password, signed httpOnly cookie that lasts a year and renews itself, so you log in once per device. Everything (pages and API) is behind the auth proxy.
@@ -35,9 +36,16 @@ Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS v4 · shadcn/ui
    | `APP_PASSWORD` | the password you'll use to unlock the app |
    | `AUTH_SECRET` | a random string, 32+ characters (`openssl rand -base64 48`) |
    | `BLOB_ACCESS` | optional, `private` (default) or `public` to match your Blob store |
+   | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | for notifications: `npx web-push generate-vapid-keys` |
+   | `VAPID_SUBJECT` | optional, `mailto:you@example.com` |
+   | `CRON_SECRET` | random string (`openssl rand -hex 32`), shared with the reminder scheduler |
 
 
 5. Redeploy. Open the site in Safari on your iPhone, sign in, then **Share → Add to Home Screen**.
+
+### Notifications
+
+Reminders are sent by `GET /api/cron/reminders` (needs `Authorization: Bearer $CRON_SECRET`). `.github/workflows/reminders.yml` calls it every 10 minutes; add `CRON_SECRET` under **GitHub → Settings → Secrets and variables → Actions**, and optionally an `APP_URL` variable if the app moves. On a Vercel Pro plan you can use Vercel Cron instead (`"crons": [{ "path": "/api/cron/reminders", "schedule": "*/10 * * * *" }]` in `vercel.json`; Vercel sends `CRON_SECRET` itself). Then turn notifications on from **Settings** in the installed app.
 
 > Changing `AUTH_SECRET` signs out every device. Changing `APP_PASSWORD` does not; rotate `AUTH_SECRET` too if you want to revoke existing logins.
 
